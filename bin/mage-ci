@@ -80,6 +80,7 @@ ${MAGECIF[4]}$ mage-ci install <magento_directory> <version> <db_name> <OPTIONS>
       -t                  Create test database flag (only in combination with -c option)
       -d  <download_dir>  Directory where all downloads are stored
       -n                  By specifying this flag you skip downloading process of magento code base, useful for composer based installments 
+      -h  <db_host>       DB Hostname
       -u  <db_user>       DB Username
       -p  <db_pass>       DB Password
       -b  <base_url>      If you'd like to have custom base url, just specify in this option
@@ -94,6 +95,7 @@ ${MAGECIF[4]}$ mage-ci update-modules <magento_directory>${MAGECIF[0]}
 
 ${MAGECIF[4]}$ mage-ci uninstall <magento_directory> [<db_name>] <OPTIONS>${MAGECIF[0]}
     Performs uninstall of Magento instance
+      -h  <db_host>       DB Hostname
       -u  <db_user>       DB Username
       -p  <db_pass>       DB Password
 
@@ -103,6 +105,7 @@ ${MAGECIF[4]}$ mage-ci uninstall-module <magento_directory> <module_dir_or_vcs_u
 ${MAGECIF[4]}$ mage-ci install-multiple <directory> <prefix> <version1> ... <versionN> <OPTIONS>${MAGECIF[0]}
     Installs multiple version of magento at <directory> in subdirectories which name is a combined value of <prefix>-<version> 
       -d  <download_dir>  Directory where all downloads are stored
+      -h  <db_host>       DB Hostname
       -u  <db_user>       DB Username
       -p  <db_pass>       DB Password
       -t                  Create test db as well
@@ -110,6 +113,7 @@ ${MAGECIF[4]}$ mage-ci install-multiple <directory> <prefix> <version1> ... <ver
 
 ${MAGECIF[4]}$ mage-ci db-dump <directory> <prefix> <version1> ... <versionN> <OPTIONS>${MAGECIF[0]}
     Creates Magento database dump file at <directory> directory with name <file_prefix><version>.sql.gz, the data dunped database is <prefix>_<version>
+      -h  <db_host>       DB Hostname
       -u  <db_user>       DB Username
       -p  <db_pass>       DB Password
       -s  <file_prefix>   sql file prefix
@@ -231,7 +235,7 @@ run_phpunit ()
 dump_magento () 
 {
    local dest_dir=$1; local prefix=$2; shift 2; 
-   local db_name; local db_cred; local db_user="root"; local db_pass=""; 
+   local db_name; local db_cred; local db_host="localhost"; local db_user="root"; local db_pass=""; 
    local version=""; local options=""; local file_prefix=""
 
    if [ ! -d "$dest_dir" ] 
@@ -249,9 +253,10 @@ dump_magento ()
      fi
    done
  
-   while getopts :u:p:f: opt $options
+   while getopts :h:u:p:f: opt $options
    do
      case $opt in
+       h) db_host=$OPTARG ;;
        u) db_user=$OPTARG ;;
        p) db_pass=$OPTARG ;;
        f) file_prefix=$OPTARG ;;
@@ -260,7 +265,7 @@ dump_magento ()
      esac
    done 
 
-   db_cred="-u ${db_user}"
+   db_cred="-h ${db_host} -u ${db_user}"
 
    if [[ $db_pass != "" ]]
    then 
@@ -303,9 +308,10 @@ install_multiple_magento ()
      fi
    done
 
-   while getopts :u:r:p:f:d:t opt $options
+   while getopts :h:u:r:p:f:d:t opt $options
    do
      case $opt in
+       h) pass_options="$pass_options -h $OPTARG" ;;
        u) pass_options="$pass_options -u $OPTARG" ;;
        p) pass_options="$pass_options -p $OPTARG" ;;
        r) pass_options="$pass_options -r $OPTARG" ;;
@@ -336,14 +342,15 @@ install_multiple_magento ()
 install_magento ()
 {
    local magento_dir=$1; local version=$2; local db_name=$3; shift 3
-   local db_create; local db_user="root"; local db_pass=""; local sql_dump_file=""; local include_test_db
+   local db_create; local db_host="localhost"; local db_user="root"; local db_pass=""; local sql_dump_file=""; local include_test_db
    local phpunit_local_xml; local opt; local sql_base_url; local db_cred
    local base_url="http://magento.local/"; local download_dir=$MAGECI_TMP;
    local admin_password="123123test"; local clean_up=0; local no_download="0";
 
-   while getopts :u:r:p:f:b:d:a:cton opt
+   while getopts :h:u:r:p:f:b:d:a:cton opt
    do
      case $opt in
+       h) db_host=$OPTARG        ;;
        u) db_user=$OPTARG        ;;
        p) db_pass=$OPTARG        ;;
        f) sql_dump_file=$OPTARG  ;;
@@ -360,7 +367,7 @@ install_magento ()
      esac
    done
 
-   [[ $db_pass == "" ]] && db_cred="-u $db_user" || db_cred="-u $db_user -p$db_pass"
+   [[ $db_pass == "" ]] && db_cred="-h $db_host -u $db_user" || db_cred="-h $db_host -u $db_user -p$db_pass"
 
    if [[ $magento_dir == "" ]]
    then
@@ -468,7 +475,7 @@ install_magento ()
    cd $magento_dir
    $php_bin -f install.php -- --license_agreement_accepted yes \
   	  --locale en_US --timezone "America/Los_Angeles" --default_currency USD \
-          --db_host localhost --db_name "$db_name" --db_user "$db_user" --db_pass "$db_pass" \
+          --db_host "$db_host" --db_name "$db_name" --db_user "$db_user" --db_pass "$db_pass" \
           --url "$base_url" --use_rewrites yes \
           --use_secure no --secure_base_url "$base_url" --use_secure_admin no \
           --admin_lastname Owner --admin_firstname Store --admin_email "admin@example.com" \
@@ -599,11 +606,12 @@ update_modules () {
 
 uninstall_magento () {
    local magento_dir=$1; local db_name=$2; shift 2
-   local db_user="root"; local db_pass=""; local opt;local db_cred
+   local db_host="localhost" db_user="root"; local db_pass=""; local opt;local db_cred
 
-   while getopts :u:p: opt
+   while getopts :h:u:p: opt
    do
      case $opt in
+       h) db_host=$OPTARG       ;;
        u) db_user=$OPTARG       ;;
        p) db_pass=$OPTARG       ;;
        \?) echo "${MAGECIF[3]}Unkown option -$OPTARG${MAGECIF[0]}" >&2; exit 1 ;;
@@ -611,7 +619,7 @@ uninstall_magento () {
      esac
    done
 
-   [[ $db_pass == "" ]] && db_cred="-u $db_user" || db_cred="-u $db_user -p$db_pass"
+   [[ $db_pass == "" ]] && db_cred="-h $db_host -u $db_user" || db_cred="-h $db_host -u $db_user -p$db_pass"
 
    echo "${MAGECIF[2]}Cleaning up Magento directory...${MAGECIF[0]}"
    rm -rf $magento_dir/* $magento_dir/.ht*

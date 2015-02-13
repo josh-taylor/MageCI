@@ -30,6 +30,7 @@ Usage
         Installs a Magento version to a specified destination
           -c                  Create databases flag
           -t                  Create test database flag (only in combination with -c option)
+          -h  <db_host>       DB Hostname
           -u  <db_user>       DB Username
           -p  <db_pass>       DB Password
           -r  <sql_base_url>  SQL dumps repository url for a particular Magento version (<sql_base_url>/<version>.sql.gz)
@@ -46,6 +47,7 @@ Usage
 ### Uninstalling Magento version
     $ bin/mage-ci uninstall <magento_directory> [<db_name>] <OPTIONS>
         Performs uninstall of Magento instance
+          -h  <db_host>       DB Hostname
           -u  <db_user>       DB Username
           -p  <db_pass>       DB Password
 
@@ -57,6 +59,7 @@ Usage
     $ bin/mage-ci install-multiple <directory> <prefix> <version1> ... <versionN> <OPTIONS>
         Installs multiple version of magento at <directory> in subdirectories which name is a combined value of <prefix>-<version> 
            -d  <download_dir>  Directory where all downloads are stored
+           -h  <db_host>       DB Host
            -u  <db_user>       DB Username
            -p  <db_pass>       DB Password
            -t                  Create test db as well
@@ -65,6 +68,7 @@ Usage
 ### Dump databases of existing installed versions
     $ bin/mage-ci db-dump <directory> <prefix> <version1> ... <versionN> <OPTIONS>
         Creates Magento database dump file at <directory> directory with name <file_prefix><version>.sql.gz, the dumped database is <prefix>_<version>
+           -h  <db_host>       DB Host
            -u  <db_user>       DB Username
            -p  <db_pass>       DB Password
            -s  <file_prefix>   sql file prefix
